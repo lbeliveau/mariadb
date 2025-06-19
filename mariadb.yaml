@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-robin-mariadb
+  annotations:
+    robin.io/replication: "2"
+    robin.io/faultdomain: "host"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: robin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: registry.local:9001/public/mariadb:latest
+        ports:
+          - containerPort: 3306
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: root123
+        volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: mariadb-storage
+      volumes:
+      - name: mariadb-storage
+        persistentVolumeClaim:
+          claimName: pvc-robin-mariadb
